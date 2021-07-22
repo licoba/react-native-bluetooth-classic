@@ -34,6 +34,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
@@ -58,6 +59,9 @@ import kjd.reactnative.bluetooth.receiver.ActionACLReceiver;
 import kjd.reactnative.bluetooth.receiver.DiscoveryReceiver;
 import kjd.reactnative.bluetooth.receiver.PairingReceiver;
 import kjd.reactnative.bluetooth.receiver.StateChangeReceiver;
+import kjd.reactnative.bluetooth.toots.BluetoothHelper;
+import kjd.reactnative.bluetooth.toots.IBTConnectListener;
+import kjd.reactnative.bluetooth.toots.IBluetoothHelper;
 
 /**
  * Provides bridge between native Android functionality and React Native javascript.  Provides
@@ -183,6 +187,7 @@ public class RNBluetoothClassicModule
      */
     private ConnectionAcceptor mAcceptor;
 
+    private IBluetoothHelper mBluetoothHelper;
     //region: Constructors
 
     /**
@@ -219,6 +224,11 @@ public class RNBluetoothClassicModule
 
         getReactApplicationContext().addActivityEventListener(this);
         getReactApplicationContext().addLifecycleEventListener(this);
+        mBluetoothHelper=new BluetoothHelper();
+//        mBluetoothHelper.setBTStateListener(mBTStateListener);//设置打开关闭状态监听
+//        mBluetoothHelper.setBTScanListener(mBTScanListener);//设置扫描监听
+//        mBluetoothHelper.setBTBoudListener(mBTBoudListener);//设置配对监听
+        mBluetoothHelper.init(context);
     }
     //endregion
 
@@ -747,67 +757,102 @@ public class RNBluetoothClassicModule
             DeviceConnection connection = mConnections.get(address);
             promise.resolve(new NativeDevice(connection.getDevice()).map());
         } else {
+            // 实际走的是这里
             final BluetoothDevice device = mAdapter.getRemoteDevice(address);
-            final NativeDevice nativeDevice = new NativeDevice(device);
-
-            try {
-                // Issue/84 just in case the React Native side gets circumvented somehow
-                // this matches the IOS side of a new parameters being added to a NSDictionary
-                Properties properties = parameters == null
-                        ? new Properties() : Utilities.mapToProperties(parameters);
-
-                final String connectorType = StandardOption.CONNECTOR_TYPE.get(properties);
-                if (!mConnectorFactories.containsKey(connectorType)) {
-                    promise.reject(Exceptions.INVALID_CONNECTOR_TYPE.name(),
-                            Exceptions.INVALID_CONNECTOR_TYPE.message(connectorType));
-                    return;
+            IBTConnectListener connectListener = new IBTConnectListener() {
+                // IBTConnectListener 监听蓝牙连接事件
+                @Override
+                public void onConnecting(BluetoothDevice bluetoothDevice) {
+                    Log.e(TAG,"IBTConnectListener onConnecting");
                 }
 
-                final String connectionType = StandardOption.CONNECTION_TYPE.get(properties);
-                if (!mConnectionFactories.containsKey(connectionType)) {
-                    promise.reject(Exceptions.INVALID_CONNECTION_TYPE.name(),
-                            Exceptions.INVALID_CONNECTION_TYPE.message(connectorType));
-                    return;
+                @Override
+                public void onConnected(BluetoothDevice bluetoothDevice) {
+                    Log.e(TAG,"IBTConnectListener onConnected");
+                    final NativeDevice nativeDevice = new NativeDevice(bluetoothDevice);
+                    promise.resolve(nativeDevice.map());
                 }
 
-                ConnectionConnectorFactory connectorFactory = mConnectorFactories.get(connectorType);
-                ConnectionConnector connector = connectorFactory.create(device, properties);
-                connector.addListener(new ConnectionConnector.ConnectorListener<BluetoothSocket>() {
-                    @Override
-                    public void success(BluetoothSocket bluetoothSocket) {
-                        // Remove from connecting and add to connected
-                        mConnecting.remove(address);
+                @Override
+                public void onDisConnecting(BluetoothDevice bluetoothDevice) {
+                    Log.e(TAG,"IBTConnectListener onDisConnecting");
+                }
 
-                        try {
-                            // Create the appropriate Connection type and add it to the connected list
-                            DeviceConnectionFactory connectionFactory = mConnectionFactories.get(connectionType);
-                            DeviceConnection connection = connectionFactory.create(bluetoothSocket, properties);
-                            connection.onDisconnect(onDisconnect);
-                            mConnections.put(address, connection);
+                @Override
+                public void onDisConnect(BluetoothDevice bluetoothDevice) {
+                    Log.e(TAG,"IBTConnectListener onDisConnect");
+                    final NativeDevice nativeDevice = new NativeDevice(bluetoothDevice);
+                    promise.reject(new ConnectionFailedException(nativeDevice, null));
+                }
 
-                            // Now start the connection and let React Native know
-                            new Thread(connection).start();
-                            promise.resolve(nativeDevice.map());
-                        } catch (IOException e) {
-                            promise.reject(new ConnectionFailedException(nativeDevice, e));
-                        }
-                    }
+                @Override
+                public void onConnectedDevice(List<BluetoothDevice> devices) {
+                    Log.e(TAG,"IBTConnectListener onConnectedDevice");
 
-                    @Override
-                    public void failure(Exception e) {
-                        // Remove from connecting and notify of failure
-                        mConnecting.remove(address);
-                        promise.reject(new ConnectionFailedException(nativeDevice, e));
-                    }
-                });
-
-                mConnecting.put(address, connector);
-                connector.start();
-            } catch (IOException e) {
-                promise.reject(new ConnectionFailedException(nativeDevice, e));
-            } catch (IllegalStateException e) {
-                promise.reject(e);
-            }
+                }
+            };
+            mBluetoothHelper.setBTConnectListener(connectListener);//设置连接监听
+            mBluetoothHelper.connect(device);
+//            final NativeDevice nativeDevice = new NativeDevice(device);
+//
+//            try {
+//                // Issue/84 just in case the React Native side gets circumvented somehow
+//                // this matches the IOS side of a new parameters being added to a NSDictionary
+//                Properties properties = parameters == null
+//                        ? new Properties() : Utilities.mapToProperties(parameters);
+//
+//                final String connectorType = StandardOption.CONNECTOR_TYPE.get(properties);
+//                if (!mConnectorFactories.containsKey(connectorType)) {
+//                    promise.reject(Exceptions.INVALID_CONNECTOR_TYPE.name(),
+//                            Exceptions.INVALID_CONNECTOR_TYPE.message(connectorType));
+//                    return;
+//                }
+//
+//                final String connectionType = StandardOption.CONNECTION_TYPE.get(properties);
+//                if (!mConnectionFactories.containsKey(connectionType)) {
+//                    promise.reject(Exceptions.INVALID_CONNECTION_TYPE.name(),
+//                            Exceptions.INVALID_CONNECTION_TYPE.message(connectorType));
+//                    return;
+//                }
+//
+//                ConnectionConnectorFactory connectorFactory = mConnectorFactories.get(connectorType);
+//                ConnectionConnector connector = connectorFactory.create(device, properties);
+//                connector.addListener(new ConnectionConnector.ConnectorListener<BluetoothSocket>() {
+//                    @Override
+//                    public void success(BluetoothSocket bluetoothSocket) {
+//                        // Remove from connecting and add to connected
+//                        mConnecting.remove(address);
+//
+//                        try {
+//                            // Create the appropriate Connection type and add it to the connected list
+//                            DeviceConnectionFactory connectionFactory = mConnectionFactories.get(connectionType);
+//                            DeviceConnection connection = connectionFactory.create(bluetoothSocket, properties);
+//                            connection.onDisconnect(onDisconnect);
+//                            mConnections.put(address, connection);
+//
+//                            // Now start the connection and let React Native know
+//                            new Thread(connection).start();
+//                            promise.resolve(nativeDevice.map());
+//                        } catch (IOException e) {
+//                            promise.reject(new ConnectionFailedException(nativeDevice, e));
+//                        }
+//                    }
+//
+//                    @Override
+//                    public void failure(Exception e) {
+//                        // Remove from connecting and notify of failure
+//                        mConnecting.remove(address);
+//                        promise.reject(new ConnectionFailedException(nativeDevice, e));
+//                    }
+//                });
+//
+//                mConnecting.put(address, connector);
+//                connector.start();
+//            } catch (IOException e) {
+//                promise.reject(new ConnectionFailedException(nativeDevice, e));
+//            } catch (IllegalStateException e) {
+//                promise.reject(e);
+//            }
         }
     }
 
@@ -1297,5 +1342,6 @@ public class RNBluetoothClassicModule
             Log.e(TAG, "There is currently no active Catalyst instance");
         }
     }
+
 
 }

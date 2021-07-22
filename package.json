@@ -1,6 +1,6 @@
 {
-  "name": "react-native-bluetooth-classic",
-  "version": "1.60.0-rc.16",
+  "name": "react-native-tmk-bluetooth-classic",
+  "version": "1.61.0",
   "description": "Implement bluetooth classic (serial) on Android (Bluetooth Adapter) and IOS (External Accessory)",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -14,7 +14,7 @@
     "postversion": "git push && git push --tags && npm publish",
     "release": "npm version prerelease --preid=rc"
   },
-  "repository": "git://github.com/kenjdavidson/react-native-bluetooth-classic.git",
+  "repository": "git://github.com/licoba/react-native-bluetooth-classic.git",
   "keywords": [
     "react-native",
     "bluetooth-classic",
@@ -36,9 +36,9 @@
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/kenjdavidson/react-native-bluetooth-classic/issues"
+    "url": "https://github.com/licoba/react-native-bluetooth-classic/issues"
   },
-  "homepage": "https://github.com/kenjdavidson/react-native-bluetooth-classic",
+  "homepage": "https://github.com/licoba/react-native-bluetooth-classic",
   "peerDependencies": {
     "react-native": ">=0.60.0"
   },

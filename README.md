@@ -1,6 +1,8 @@
 
 # react-native-bluetooth-classic
 
+> 添加了根据蓝牙Mac地址连接设备的功能（For tmk）类似于Android手机蓝牙设置里面的蓝牙连接
+
 React Native Bluetooth Classic is meand to bridge the gap found with regards to IOS Bluetooth Classic using the External Accessory framework. 
 
 Based off the [react-native-bluetooth-serial](https://github.com/rusel1989/react-native-bluetooth-serial) port, and updated to replace [CoreBluetooth](https://developer.apple.com/documentation/corebluetooth) (BLE) on IOS with [External Accessory](https://developer.apple.com/documentation/externalaccessory/eaaccessory).
