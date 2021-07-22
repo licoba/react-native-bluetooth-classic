@@ -15,7 +15,7 @@ import android.util.Base64;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-
+import com.facebook.react.BuildConfig;
 import com.facebook.react.bridge.ActivityEventListener;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.LifecycleEventListener;
