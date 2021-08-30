@@ -493,6 +493,34 @@ public class BluetoothHelper implements IBluetoothHelper {
     }
 
     @Override
+    public boolean isConnected(String deviceAddress) {
+        if(mBluetoothadapter != null){
+            Class bluetoothAdapterClass = BluetoothAdapter.class;
+            try {
+                Method method = bluetoothAdapterClass.getDeclaredMethod("getConnectionState");
+                method.setAccessible(true);
+                int state = (int) method.invoke(mBluetoothadapter, (Object[]) null);
+                if (state == BluetoothAdapter.STATE_CONNECTED || state == BluetoothAdapter.STATE_CONNECTING) {
+                    if (mBluetoothadapter.getBondedDevices().size() > 0) {
+                        Set<BluetoothDevice> devices = mBluetoothadapter.getBondedDevices();
+                        for (BluetoothDevice device : devices) {
+                            Method isConnectedMethod = BluetoothDevice.class.getDeclaredMethod("isConnected");
+                            method.setAccessible(true);
+                            boolean isConnected = (boolean) isConnectedMethod.invoke(device);
+                            if (isConnected) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return false;
+    }
+
+    @Override
     public boolean setDiscoverableTimeout(int timeout) {
         try {//得到指定的类中的方法
 //            Method method = BluetoothAdapter.class.getMethod("setDiscoverableTimeout", int.class);

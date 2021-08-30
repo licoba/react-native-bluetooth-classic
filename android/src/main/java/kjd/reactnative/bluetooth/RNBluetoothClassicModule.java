@@ -893,7 +893,8 @@ public class RNBluetoothClassicModule
             promise.reject(Exceptions.BLUETOOTH_NOT_ENABLED.name(),
                     Exceptions.BLUETOOTH_NOT_ENABLED.message());
         } else {
-            promise.resolve(mConnections.containsKey(address));
+            promise.resolve(mBluetoothHelper.isConnected(address));
+//            promise.resolve(mConnections.containsKey(address));
         }
     }
 

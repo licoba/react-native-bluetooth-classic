@@ -32,6 +32,7 @@ public interface IBluetoothHelper {
     void destroy();
     void getConnectedDevices();//获取已连接的设备
     boolean isConnected(BluetoothDevice device);//是否连接
+    boolean isConnected(String deviceAddress);//是否连接
     boolean setDiscoverableTimeout(int timeout);//设备可见时间
 
 
